@@ -126,8 +126,8 @@ class OrderService {
                     brand_name: 'My Shop',
                     landing_page: 'LOGIN',
                     user_action: 'PAY_NOW',
-                    return_url: `web-app-frontend-fvnpwp3j3-tuananh19122003s-projects.vercel.app/paypal-success?orderId=${order.id}`,
-                    cancel_url: `web-app-frontend-fvnpwp3j3-tuananh19122003s-projects.vercel.app/payment-fail?orderId=${order.id}`,
+                    return_url: `https://web-app-frontend-fvnpwp3j3-tuananh19122003s-projects.vercel.app/paypal-success?orderId=${order.id}`,
+                    cancel_url: `https://web-app-frontend-fvnpwp3j3-tuananh19122003s-projects.vercel.app/payment-fail?orderId=${order.id}`,
                 },
             });
 

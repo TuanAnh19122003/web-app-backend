@@ -110,7 +110,6 @@ class ProductService {
                 ps.additional_price,
                 (p.price + ps.additional_price) AS price_with_additional,
                 d.percentage AS discount_percentage,
-
                 ROUND(
                     CASE
                         WHEN d.id IS NOT NULL 
@@ -119,12 +118,11 @@ class ProductService {
                         ELSE (p.price + ps.additional_price)
                     END, 2
                 ) AS final_price
-
             FROM categories c
-            LEFT JOIN products p ON p.categoryId = c.id
-            LEFT JOIN product_sizes ps ON p.id = ps.productId
-            LEFT JOIN sizes s ON s.id = ps.sizeId
-            LEFT JOIN discounts d ON p.discountId = d.id;
+            LEFT JOIN products p ON p."categoryId" = c.id
+            LEFT JOIN product_sizes ps ON p.id = ps."productId"
+            LEFT JOIN sizes s ON s.id = ps."sizeId"
+            LEFT JOIN discounts d ON p."discountId" = d.id;
 
         `);
 

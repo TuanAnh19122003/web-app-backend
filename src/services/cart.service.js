@@ -73,7 +73,7 @@ class CartService {
                 include: [
                     {
                         model: CartItem,
-                        as: 'cart_item',
+                        as: 'items',
                         include: [
                             {
                                 model: Product,
@@ -89,14 +89,23 @@ class CartService {
                 ]
             });
 
-            if (!cart) return [];
+            if (!cart) {
+                return {
+                    cartId: null,
+                    items: []
+                };
+            }
 
-            return cart.cart_item;
+            return {
+                cartId: cart.id,
+                items: cart.items || []
+            };
         } catch (err) {
             console.error('Error in getCart:', err);
             throw err;
         }
     }
+
 
 
     static async updateQuantity(cartItemId, quantity) {

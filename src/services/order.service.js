@@ -126,8 +126,8 @@ class OrderService {
                     brand_name: 'My Shop',
                     landing_page: 'LOGIN',
                     user_action: 'PAY_NOW',
-                    return_url: `http://localhost:3000/paypal-success?orderId=${order.id}`,
-                    cancel_url: `http://localhost:3000/payment-fail?orderId=${order.id}`,
+                    return_url: `${process.env.FRONTEND_URL}/paypal-success?orderId=${order.id}`,
+                    cancel_url: `${process.env.FRONTEND_URL}/payment-fail?orderId=${order.id}`,
                 },
             });
 

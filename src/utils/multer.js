@@ -1,46 +1,59 @@
+// utils/uploadCloudinary.js
 const multer = require('multer');
-const path = require('path');
-const normalizeName = require('./normalizeName');
+const cloudinary = require('../config/cloudinaryConfig');
+const normalizeFileName = require('./normalizeName');
 
-const uploadPath = path.join(__dirname, '..', 'uploads');
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        const base = path.basename(file.originalname, ext);
-        const cleanName = normalizeName(base);
-
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = now.getFullYear();
-        const randomStr = Math.random().toString(36).substring(2, 8);
-
-        const dateStr = `${day}-${month}-${year}`;
-        const uniqueName = `${dateStr}-${randomStr}-${cleanName}${ext}`;
-
-        cb(null, uniqueName);
+// multer memory
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (allowed.includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Chỉ cho phép JPG / PNG'));
     }
 });
 
-const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only JPEG/PNG/JPG files are allowed'), false);
-    }
+// tạo tên file unique
+const generateUniqueName = (originalname) => {
+    const base = normalizeFileName(originalname).replace(/\.[^/.]+$/, '');
+    const random = Math.random().toString(36).substring(2, 8);
+    return `${Date.now()}-${random}-${base}`;
 };
 
-const upload = multer({
-    storage,
-    fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024
-    }
-});
+// upload cloudinary
+const uploadToCloudinary = (file, subFolder = '') => {
+    if (!file) throw new Error('File không tồn tại');
 
-module.exports = upload;
+    const folder = subFolder
+        ? `coffee-app/${subFolder}`
+        : 'coffee-app';
+
+    return new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+            {
+                folder,
+                public_id: generateUniqueName(file.originalname),
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve({
+                    url: result.secure_url,
+                    publicId: result.public_id,
+                });
+            }
+        ).end(file.buffer);
+    });
+};
+
+// xóa ảnh
+const deleteFromCloudinary = async (publicId) => {
+    if (!publicId) return;
+    await cloudinary.uploader.destroy(publicId);
+};
+
+module.exports = {
+    upload,
+    uploadToCloudinary,
+    deleteFromCloudinary
+};

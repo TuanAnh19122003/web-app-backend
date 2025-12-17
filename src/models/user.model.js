@@ -25,6 +25,11 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    imagePublicId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+
     password: {
         type: DataTypes.STRING,
         allowNull: false,

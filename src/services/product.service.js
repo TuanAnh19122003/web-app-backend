@@ -1,17 +1,17 @@
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
-const path = require('path');
-const fs = require('fs');
 const Discount = require('../models/discount.model');
 const db = require('../models/index');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/multer');
+const { Op } = require('sequelize');
 
 class ProductService {
+
     static async findAll(options = {}) {
         const { offset, limit, search } = options;
 
         const whereClause = {};
         if (search) {
-            const { Op } = require('sequelize');
             whereClause[Op.or] = [
                 { id: { [Op.like]: `%${search}%` } },
                 { name: { [Op.like]: `%${search}%` } },
@@ -41,59 +41,59 @@ class ProductService {
             queryOptions.limit = limit;
         }
 
-        const data = await Product.findAndCountAll(queryOptions);
-        return data;
+        return await Product.findAndCountAll(queryOptions);
     }
 
+    // ================= CREATE =================
     static async create(data, file) {
         if (file) {
-            data.image = `uploads/${file.filename}`
-        }
-        const product = await Product.create(data);
-        return product;
-    }
-
-    static async update(id, data, file) {
-        const product = await Product.findOne({ where: { id: id } });
-        if (!product) throw new Error('Product not found');
-        if (file) {
-            if (product.image) {
-                const oldImagePath = path.join(__dirname, '..', product.image);
-
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
-
-            data.image = `uploads/${file.filename}`;
+            const uploaded = await uploadToCloudinary(file, 'products');
+            data.image = uploaded.url;
+            data.imagePublicId = uploaded.publicId;
         }
 
-        if (data.discountId === '' || data.discountId === 'null' || data.discountId === null) {
+        if (!data.discountId || data.discountId === 'null') {
             data.discountId = null;
         } else {
-            data.discountId = parseInt(data.discountId, 10);
-            if (isNaN(data.discountId)) {
-                data.discountId = null;
-            }
+            data.discountId = Number(data.discountId) || null;
+        }
+
+        return await Product.create(data);
+    }
+
+    // ================= UPDATE =================
+    static async update(id, data, file) {
+        const product = await Product.findByPk(id);
+        if (!product) throw new Error('Product not found');
+
+        if (file) {
+            // xóa ảnh cũ trên cloudinary
+            await deleteFromCloudinary(product.imagePublicId);
+
+            const uploaded = await uploadToCloudinary(file, 'products');
+            data.image = uploaded.url;
+            data.imagePublicId = uploaded.publicId;
+        }
+
+        if (!data.discountId || data.discountId === 'null') {
+            data.discountId = null;
+        } else {
+            data.discountId = Number(data.discountId) || null;
         }
 
         return await product.update(data);
     }
 
+    // ================= DELETE =================
     static async delete(id) {
         const product = await Product.findByPk(id);
         if (!product) return 0;
 
-        if (product.image) {
-            const imagePath = path.join(__dirname, '..', product.image);
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
-            }
-        }
-
+        await deleteFromCloudinary(product.imagePublicId);
         return await Product.destroy({ where: { id } });
     }
 
+    // ================= RAW QUERY =================
     static async findAllWithSizes() {
         const [results] = await db.sequelize.query(`
             SELECT 
@@ -123,12 +123,10 @@ class ProductService {
             LEFT JOIN product_sizes ps ON p.id = ps."productId"
             LEFT JOIN sizes s ON s.id = ps."sizeId"
             LEFT JOIN discounts d ON p."discountId" = d.id;
-
         `);
 
         return results;
     }
-
 }
 
 module.exports = ProductService;

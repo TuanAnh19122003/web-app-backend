@@ -1,29 +1,25 @@
+// services/user.service.js
 const hashPassword = require('../utils/hashPassword');
 const Role = require('../models/role.model');
 const User = require('../models/user.model');
-const path = require('path');
-const fs = require('fs');
-const { log } = require('console');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/multer');
+const { Op } = require('sequelize');
 
 class UserService {
-    static async findAll(options = {}) {
-        const { offset, limit, search } = options;
+    static async findAll({ offset, limit, search }) {
+        const where = {};
 
-        const whereClause = {};
         if (search) {
-            const { Op } = require('sequelize');
-            whereClause[Op.or] = [
-                { id: { [Op.like]: `%${search}%` } },
-                { lastname: { [Op.like]: `%${search}%` } },
+            where[Op.or] = [
                 { firstname: { [Op.like]: `%${search}%` } },
+                { lastname: { [Op.like]: `%${search}%` } },
                 { email: { [Op.like]: `%${search}%` } },
                 { phone: { [Op.like]: `%${search}%` } },
-                { is_active: { [Op.like]: `%${search}%` } },
             ];
         }
 
-        const queryOptions = {
-            where: whereClause,
+        return await User.findAndCountAll({
+            where,
             include: {
                 model: Role,
                 as: 'role',
@@ -32,26 +28,25 @@ class UserService {
             offset,
             limit,
             order: [['createdAt', 'ASC']]
-        };
-
-        const users = await User.findAndCountAll(queryOptions);
-        return users;
+        });
     }
 
     static async create(data, file) {
         if (data.password) {
             data.password = await hashPassword(data.password);
         }
+
         if (file) {
-            data.image = `uploads/${file.filename}`;
+            const uploaded = await uploadToCloudinary(file, 'coffee-app/users');
+            data.image = uploaded.url;
+            data.imagePublicId = uploaded.publicId;
         }
 
-        const user = await User.create(data);
-        return user;
+        return await User.create(data);
     }
-    
+
     static async update(id, data, file) {
-        const user = await User.findOne({ where: { id: id } });
+        const user = await User.findByPk(id);
         if (!user) throw new Error('User không tồn tại');
 
         if (data.password && data.password !== user.password) {
@@ -59,35 +54,26 @@ class UserService {
         } else {
             delete data.password;
         }
+
         if (file) {
-            if (user.image) {
-                const oldImagePath = path.join(__dirname, '..', user.image);
+            // xóa ảnh cũ
+            await deleteFromCloudinary(user.imagePublicId);
 
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
-
-            data.image = `uploads/${file.filename}`;
+            const uploaded = await uploadToCloudinary(file, 'users');
+            data.image = uploaded.url;
+            data.imagePublicId = uploaded.publicId;
         }
 
-        return await user.update(data)
+        return await user.update(data);
     }
 
     static async delete(id) {
         const user = await User.findByPk(id);
         if (!user) return 0;
 
-        if (user.image) {
-            const imagePath = path.join(__dirname, '..', user.image);
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
-            }
-        }
-
+        await deleteFromCloudinary(user.imagePublicId);
         return await User.destroy({ where: { id } });
     }
-
 }
 
 module.exports = UserService;

@@ -30,7 +30,7 @@ const db = {
 
 require('./initRelationships')(db);
 
-sequelize.sync({ force: false })
+sequelize.sync({ alter: true })
     .then(() => {
         console.log('Connection successful');
     })

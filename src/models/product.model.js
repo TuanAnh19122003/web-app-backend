@@ -17,6 +17,11 @@ const Product = sequelize.define('Product', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    imagePublicId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+
     price: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
@@ -49,7 +54,7 @@ const Product = sequelize.define('Product', {
 }, {
     timestamps: true,
     tableName: 'products',
-    
+
 });
 
 

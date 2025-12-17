@@ -12,7 +12,7 @@ class OrderService {
                 { model: User, as: 'user' },
                 {
                     model: OrderItem,
-                    as: 'order_item',
+                    as: 'items',
                     include: [
                         { model: Product, as: 'product' },
                         { model: Size, as: 'size' },
@@ -34,7 +34,7 @@ class OrderService {
             include: [
                 {
                     model: OrderItem,
-                    as: 'order_item',
+                    as: 'items',
                     include: [
                         { model: Product, as: 'product' },
                         { model: Size, as: 'size' },
@@ -126,8 +126,8 @@ class OrderService {
                     brand_name: 'My Shop',
                     landing_page: 'LOGIN',
                     user_action: 'PAY_NOW',
-                    return_url: `https://web-app-frontend-fvnpwp3j3-tuananh19122003s-projects.vercel.app/paypal-success?orderId=${order.id}`,
-                    cancel_url: `https://web-app-frontend-fvnpwp3j3-tuananh19122003s-projects.vercel.app/payment-fail?orderId=${order.id}`,
+                    return_url: `http://localhost:3000/paypal-success?orderId=${order.id}`,
+                    cancel_url: `http://localhost:3000/payment-fail?orderId=${order.id}`,
                 },
             });
 

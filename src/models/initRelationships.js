@@ -1,36 +1,82 @@
 module.exports = (db) => {
-    const { Product, Size, ProductSize, Category, User, Role, Discount, Cart, CartItem, Order, OrderItem } = db;
+    const {
+        User,
+        Role,
+        Product,
+        Category,
+        Discount,
+        Size,
+        ProductSize,
+        Cart,
+        CartItem,
+        Order,
+        OrderItem
+    } = db;
 
-    User.belongsTo(Role, { foreignKey: 'roleId', as: 'role' });
-    Role.hasMany(User, { foreignKey: 'roleId', as: 'user' });
+    const fk = (name, allowNull = false) => ({
+        foreignKey: { name, allowNull },
+        constraints: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    });
 
-    Product.hasMany(ProductSize, { foreignKey: 'productId', as: 'product_size' });
-    ProductSize.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+    /* =========================
+       USER - ROLE
+    ========================= */
+    User.belongsTo(Role, { ...fk('roleId'), as: 'role' });
+    Role.hasMany(User, { foreignKey: 'roleId', as: 'users' });
 
-    Size.hasMany(ProductSize, { foreignKey: 'sizeId', as: 'product_size' });
-    ProductSize.belongsTo(Size, { foreignKey: 'sizeId', as: 'size' });
+    /* =========================
+       PRODUCT - CATEGORY
+    ========================= */
+    Product.belongsTo(Category, { ...fk('categoryId'), as: 'category' });
+    Category.hasMany(Product, { foreignKey: 'categoryId', as: 'products' });
 
-    Product.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
-    Category.hasMany(Product, { foreignKey: 'categoryId', as: 'product' });
+    /* =========================
+       PRODUCT - DISCOUNT
+    ========================= */
+    Product.belongsTo(Discount, {
+        ...fk('discountId', true), // có thể null
+        as: 'discount'
+    });
+    Discount.hasMany(Product, { foreignKey: 'discountId', as: 'products' });
 
-    Product.belongsTo(Discount, { foreignKey: 'discountId', as: 'discount' });
-    Discount.hasMany(Product, { foreignKey: 'discountId', as: 'product' });
+    /* =========================
+       PRODUCT - SIZE (M:N)
+    ========================= */
+    Product.hasMany(ProductSize, { foreignKey: 'productId', as: 'productSizes' });
+    ProductSize.belongsTo(Product, { ...fk('productId'), as: 'product' });
 
-    Cart.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Size.hasMany(ProductSize, { foreignKey: 'sizeId', as: 'productSizes' });
+    ProductSize.belongsTo(Size, { ...fk('sizeId'), as: 'size' });
+
+    /* =========================
+       CART - USER
+    ========================= */
+    Cart.belongsTo(User, { ...fk('userId'), as: 'user' });
     User.hasOne(Cart, { foreignKey: 'userId', as: 'cart' });
 
-    CartItem.belongsTo(Cart, { foreignKey: 'cartId', as: 'cart' });
-    Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'cart_item' });
+    /* =========================
+       CART - CART ITEM
+    ========================= */
+    Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items' });
+    CartItem.belongsTo(Cart, { ...fk('cartId'), as: 'cart' });
 
-    CartItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
-    CartItem.belongsTo(Size, { foreignKey: 'sizeId', as: 'size' });
+    CartItem.belongsTo(Product, { ...fk('productId'), as: 'product' });
+    CartItem.belongsTo(Size, { ...fk('sizeId'), as: 'size' });
 
-    Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-    User.hasMany(Order, { foreignKey: 'userId', as: 'order' });
+    /* =========================
+       ORDER - USER
+    ========================= */
+    Order.belongsTo(User, { ...fk('userId'), as: 'user' });
+    User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
 
-    Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'order_item' });
-    OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+    /* =========================
+       ORDER - ORDER ITEM
+    ========================= */
+    Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items' });
+    OrderItem.belongsTo(Order, { ...fk('orderId'), as: 'order' });
 
-    OrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
-    OrderItem.belongsTo(Size, { foreignKey: 'sizeId', as: 'size' });
+    OrderItem.belongsTo(Product, { ...fk('productId'), as: 'product' });
+    OrderItem.belongsTo(Size, { ...fk('sizeId'), as: 'size' });
 };

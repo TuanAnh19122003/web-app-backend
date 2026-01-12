@@ -109,26 +109,42 @@ class CartService {
 
 
     static async updateQuantity(cartItemId, quantity) {
-        const item = await CartItem.findByPk(cartItemId);
-        if (!item) throw new Error('Cart item not found');
+        // Đảm bảo quantity là số nguyên
+        const qty = parseInt(quantity);
+        if (isNaN(qty) || qty < 1) throw new Error('Số lượng không hợp lệ');
 
-        item.quantity = quantity;
+        const item = await CartItem.findByPk(cartItemId);
+        if (!item) throw new Error('Không tìm thấy sản phẩm trong giỏ hàng');
+
+        item.quantity = qty;
         await item.save();
 
         return item;
     }
 
     static async removeItem(cartItemId) {
-        const item = await CartItem.findByPk(cartItemId);
-        if (!item) throw new Error('Cart item not found');
-        await item.destroy();
+        // Dùng destroy trực tiếp với điều kiện where để an toàn hơn
+        const deleted = await CartItem.destroy({
+            where: { id: cartItemId }
+        });
+
+        if (!deleted) throw new Error('Không tìm thấy sản phẩm để xóa');
         return { success: true };
     }
 
     static async clearCart(userId) {
         if (!userId) throw new Error('userId is required');
-        const deleted = await CartItem.destroy({ where: { id: userId } });
-        return deleted;
+
+        // 1. Tìm giỏ hàng của user
+        const cart = await Cart.findOne({ where: { userId } });
+        if (!cart) return 0;
+
+        // 2. Xóa tất cả items thuộc giỏ hàng đó
+        const deletedCount = await CartItem.destroy({
+            where: { cartId: cart.id }
+        });
+
+        return deletedCount;
     }
 }
 

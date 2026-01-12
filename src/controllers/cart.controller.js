@@ -43,15 +43,18 @@ class CartController {
         try {
             const { cartItemId, quantity } = req.body;
 
+            // Dòng log quan trọng để kiểm tra ID
+            console.log(`>>> Update Yêu cầu: ID dòng giỏ hàng=${cartItemId}, Số lượng mới=${quantity}`);
+
             if (!cartItemId || quantity == null) {
                 return res.status(400).json({ message: 'Missing cartItemId or quantity' });
             }
 
-            await CartService.updateQuantity(cartItemId, quantity);
-            res.status(200).json({ message: 'Quantity updated' });
+            const updated = await CartService.updateQuantity(cartItemId, quantity);
+            res.status(200).json({ message: 'Quantity updated', data: updated });
         } catch (err) {
             console.error('Error in updateQuantity:', err);
-            res.status(500).json({ message: 'Internal Server Error' });
+            res.status(500).json({ message: err.message || 'Internal Server Error' });
         }
     }
 
